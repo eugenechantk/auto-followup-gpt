@@ -1,0 +1,8 @@
+version = 0.1
+[default.deploy.parameters]
+stack_name = "auto-follow-up"
+resolve_s3 = true
+s3_prefix = "auto-follow-up"
+region = "us-east-2"
+capabilities = "CAPABILITY_IAM"
+image_repositories = []
