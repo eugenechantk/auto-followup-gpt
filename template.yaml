@@ -7,3 +7,4 @@ Resources:
       FunctionName: AUTO_FOLLOW_UP
       Handler: app.lambda_handler
       Runtime: python3.9
+      Timeout: 30

@@ -12,6 +12,8 @@ from bs4 import BeautifulSoup
 import datetime
 import json
 
+SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+
 def lambda_handler (event, context):
   main()
 
@@ -28,7 +30,8 @@ def check_sender_of_last_thread(thread):
     return None
 
 def main():
-  SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+	not_replied_emails()
+  
 
 def not_replied_emails():
 	# Variable creds will store the user access token.
