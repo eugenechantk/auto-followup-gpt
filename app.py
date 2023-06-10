@@ -12,7 +12,9 @@ from bs4 import BeautifulSoup
 import datetime
 import json
 
+# Define the SCOPES. If modifying it, delete the token.pickle file.
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+
 
 def lambda_handler (event, context):
   main()
@@ -32,6 +34,7 @@ def check_sender_of_last_thread(thread):
 def main():
 	not_replied_emails()
   
+
 
 def not_replied_emails():
 	# Variable creds will store the user access token.
@@ -73,33 +76,32 @@ def not_replied_emails():
 			follow_up_label_id = label['id']
 	# request a list of all the messages
 	# We can also pass maxResults to get any number of emails. Like this:
-	result = service.users().messages().list(maxResults=30, userId='me', labelIds=['SENT']).execute()
+	result = service.users().messages().list(maxResults=50, userId='me', labelIds=['SENT']).execute()
 	messages = result.get('messages')
 
 	# messages is a list of dictionaries where each dictionary contains a message id.
 
 	# iterate through all the messages
-	counter= 0
+	thread_ids = set()
 	for msg in messages:
 		# Get the message from its id
 		txt = service.users().messages().get(userId='me', id=msg['id']).execute()
 		# print("txt['labelIds']", txt['labelIds'])
 		if follow_up_label_id in txt['labelIds']:
 			target_text = txt 
-			print("Target text", target_text)
 		
 		
-			#check if the email is responded or not by seeing the last sender 
+			#find the thread for this email
 			thread_id = target_text['threadId']		
 			thread = service.users().threads().get(userId='me', id=thread_id).execute()
-			# print("thread_id", thread_id)
-			# thread_label_id = thread['labelIds']
-			last_sender = check_sender_of_last_thread(thread)
+
+
+			last_sender = check_sender_of_last_thread(thread)			
 			
+			#find the sent date
 			internal_date = target_text['internalDate']
 			sent_time = datetime.datetime.fromtimestamp(int(internal_date) / 1000).strftime('%Y-%m-%d %H:%M:%S')
 
-			counter +=1
 
 			# Use try-except to avoid any Errors
 			try:
@@ -113,39 +115,42 @@ def not_replied_emails():
 						subject = d['value']
 					if d['name'] == 'From':
 						sender = d['value']
-					
+				
 				# check if the email is responded or not by seeing the last sender
-				# if last_sender == sender:
+				# and we haven't checked this thread yet 
+				if (last_sender == sender) and (thread_id not in thread_ids):
+					thread_ids.add(thread_id)
+					
 
 					# The Body of the message is in Encrypted format. So, we have to decode it.
-					# Get the data and decode it with base 64 decoder.
-						
-				if target_text['id'] == '1888ca4abbb84812': 
-					print("Monika is here")					
+					# Get the data and decode it with base 64 decoder.		
 					parts = payload.get('parts')[0]		
-					print("Monika parts", parts)
-					print("Monika parts body", parts['body'])
-					data = parts['body']['data']
-					print("Monika data", data)
+					# non pure text
+					if 'multipart' in parts['mimeType']:
+						for part in parts['parts']:
+							if part['mimeType'] == 'text/plain':
+								data = part['body']['data']
+					#pure text
+					else: 
+						data = parts['body']['data']
+	
 
-					data = data.replace("-","+").replace("_","/")
-					
-					
+					data = data.replace("-","+").replace("_","/")				
 					body = base64.b64decode(data).decode('utf-8')
 
-		
+	
 
-				# if counter<=1:
-				# 	print("finishd decoding")
-			
 					print("Subject: ", subject)
 					print("From: ", sender)
 					print("Date: ", sent_time)
-				# print("Body: ", body)
-				# print('\n')
+					print("Body: ", body)
+					print('\n')
 			except:
 				pass
-	return 
+	return subject, sender, sent_time, body
+
+
+not_replied_emails()
 
 if __name__ == "__main__":
     main()
