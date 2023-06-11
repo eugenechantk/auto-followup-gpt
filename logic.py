@@ -11,7 +11,8 @@ from googleapiclient.errors import HttpError
 from email.mime.text import MIMEText
 from base64 import urlsafe_b64encode
 
-openai.api_key = "Your key"  # Eugene needs to change to his own key
+# TODO: hide it in env variable
+openai.api_key = "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" 
 
 # get the credentials
 
@@ -110,7 +111,7 @@ def not_replied_emails(creds):
     messages = find_all_messages(service)
 
     # output data storage
-    df = pd.DataFrame(columns=['subject', 'thread_id',
+    df = pd.DataFrame(columns=['msgId', 'subject', 'thread_id',
                       'sender', 'receiver', 'sent_time', 'body'])
     # iterate through all the messages
     thread_ids = set()
@@ -280,26 +281,15 @@ def send_email_to_all(creds, openai_json):
 
     for i in range(len(df)):
         # TODO: change the sender and receiver to the email that is parsed from the token
-        sender = 'yung-hsuan@uni.minerva.edu'  # Eugene's email
+        sender = 'me@eugenechantk.me'  
         real_receiver = df['receiver'][i]
-        receiver = 'lampmaa22@gmail.com'  # Eugene's email
+        receiver = 'me@eugenechantk.me'
 
         subject = '-- Follow up reminder -- ' + \
             df['subject'][i] + ' -- For ' + real_receiver + ' ---'
         print(subject)
         message = df['reply'][i]
         message = send_one_email(creds, sender, receiver, subject, message)
-        email_list.append({id: df['msgId'][i], 'message': message})
+        email_list.append({'id': df['msgId'][i], 'message': message})
 
     return email_list
-
-
-if __name__ == '__main__':
-    creds = get_credentials()  # both fetching and sending needs credentials
-    print('credentials are created!')
-    email_fetch_json = not_replied_emails(creds)
-    print('email_fetch_json is created!')
-    openai_json = generate_reply(email_fetch_json)
-    print('openai_response is created!')
-    email_list = send_email_to_all(creds, openai_json)
-    print('All emails are sent!')
