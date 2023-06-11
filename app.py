@@ -5,8 +5,6 @@ from google.oauth2.credentials import Credentials
 # Import all the logic functions from logic.py
 import logic
 
-sampleEvent = {'body': sampleBody}
-
 
 def lambda_handler(event, context):
     print('Lambda function invoked')
@@ -60,7 +58,3 @@ class CustomError(Exception):
         self.status_code = status_code
         self.code = code
         self.message = message
-
-
-if __name__ == "__main__":
-    lambda_handler(sampleEvent, None)
