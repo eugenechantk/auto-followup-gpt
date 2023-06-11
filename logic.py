@@ -15,10 +15,10 @@ from dotenv import load_dotenv
 
 
 # FOR AWS
-# openai.api_key = os.environ['OPENAI_KEY']
+openai.api_key = os.environ['OPENAI_KEY']
 # FOR LOCAL
-load_dotenv()
-openai.api_key = os.getenv('OPENAI_KEY')
+# load_dotenv()
+# openai.api_key = os.getenv('OPENAI_KEY')
 
 
 # get user's email with the token
