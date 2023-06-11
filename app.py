@@ -29,11 +29,14 @@ def lambda_handler(event, context):
             raise CustomError(400, 'NoCredentials', 'No access token provided')
         creds = Credentials(token=accessToken)
 
+        # Get the user's email address
+        email_address = logic.get_user_email(creds)
+
         email_fetch_json = logic.not_replied_emails(creds)
 
         openai_json = logic.generate_reply(email_fetch_json)
 
-        email_list = logic.send_email_to_all(creds, openai_json)
+        email_list = logic.send_email_to_all(creds, openai_json, email_address)
 
         res_body = {'email_sent': email_list}
         print(email_list)
