@@ -7,14 +7,27 @@ import json
 import pandas as pd
 import openai
 import re
+import os
 from googleapiclient.errors import HttpError
 from email.mime.text import MIMEText
 from base64 import urlsafe_b64encode
+from dotenv import load_dotenv
 
-# TODO: hide it in env variable
-openai.api_key = "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" 
 
-# get the credentials
+# FOR AWS
+# openai.api_key = os.environ['OPENAI_KEY']
+# FOR LOCAL
+load_dotenv()
+openai.api_key = os.getenv('OPENAI_KEY')
+
+
+# get user's email with the token
+def get_user_email(creds):
+    service = build('gmail', 'v1', credentials=creds)
+    profile = service.users().getProfile(userId='me').execute()
+    email_address = profile['emailAddress']
+    return email_address
+
 
 # find the follow up labels
 def find_follow_up_label(service):
@@ -275,15 +288,14 @@ def send_one_email(creds, sender, receiver, subject, message):
 # -- Main Function for Sending Email -- #
 
 
-def send_email_to_all(creds, openai_json):
+def send_email_to_all(creds, openai_json, email_address):
     df = pd.read_json(openai_json, orient='records')
     email_list = []
 
     for i in range(len(df)):
-        # TODO: change the sender and receiver to the email that is parsed from the token
-        sender = 'me@eugenechantk.me'  
+        sender = email_address  
         real_receiver = df['receiver'][i]
-        receiver = 'me@eugenechantk.me'
+        receiver = email_address
 
         subject = '-- Follow up reminder -- ' + \
             df['subject'][i] + ' -- For ' + real_receiver + ' ---'
