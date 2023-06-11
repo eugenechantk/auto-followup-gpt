@@ -241,4 +241,7 @@ $RECYCLE.BIN/
 .aws-sam
 */build/*
 
+# FOR DEV: GOOGLE AUTH TOKEN
+gmail_oauth.json
+
 # End of https://www.gitignore.io/api/osx,linux,python,windows,pycharm,visualstudiocode
