@@ -5,15 +5,6 @@ from google.oauth2.credentials import Credentials
 # Import all the logic functions from logic.py
 import logic
 
-sampleBody = json.dumps(
-{
-  'access_token': 'ya29.a0AWY7CklDdBdYtPfTL8Qs7GqHbaa4sHMnVeT6iGM-TBvxw1KAA1OZ_t_0vREHF6GemtYFZkjaF-7Gyeu6XTUy2niPt6LhQfWrRkDIay_K3J53O9RPej4RQ8wClCdrQS6ysHz6f-q4jLieYdbXLnmN98HadaexaCgYKAU0SARASFQG1tDrpubse_XgXFto5hdqC0AjsIw0163',
-  'refresh_token': '1//06MEqYl6_TOpGCgYIARAAGAYSNwF-L9IrQcNnL1avOX6xAO-z3OzGriyw3gi5PLYR7_D5nGHlPXUso3RiemAKaM5UHQPK9hCaNzQ',
-  'scope': 'https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.readonly',
-  'token_type': 'Bearer',
-  'expiry_date': 1686475494517
-})
-
 sampleEvent = {'body': sampleBody}
 
 
