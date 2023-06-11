@@ -1,0 +1,23 @@
+apigateway
+{
+    "id": "w5vt3yoqb9",
+    "name": "auto-follow-up",
+    "createdDate": "2023-06-10T01:33:16-07:00",
+    "apiKeySource": "HEADER",
+    "endpointConfiguration": {
+        "types": [
+            "EDGE"
+        ]
+    },
+    "disableExecuteApiEndpoint": false
+}
+
+apigatway resources
+{
+    "items": [
+        {
+            "id": "oh1klorb6c",
+            "path": "/"
+        }
+    ]
+}
