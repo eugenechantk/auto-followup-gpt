@@ -1,42 +1,40 @@
-# from lxml import etree
+from googleapiclient.discovery import build
 import json
 from google.oauth2.credentials import Credentials
 
-# Import all the logic functions from logic.py
-import logic
-import auth
+
+# get user's email with the token
+def get_user_email(creds):
+    service = build('gmail', 'v1', credentials=creds)
+    profile = service.users().getProfile(userId='me').execute()
+    email_address = profile['emailAddress']
+    return email_address
 
 
-def generate_follow_up_handler(event, context):
-    print('generate follow up lambda function invoked')
-    # Parse the request body
-    request_body = json.loads(event['body'])
-
+def authentication_handler(event, context):
+    print('authentication lambda function invoked')
+    # print(event['headers']['Authorization'], type(event['headers']['Authorization']))
+    # request_headers = json.loads(event['headers'])
     try:
         # Get the access token from the request
-        accessToken = request_body['access_token']
+        accessToken = event['headers']['Authorization'].split(' ')[1]
+        print(accessToken)
         if accessToken is None:
             raise CustomError(400, 'NoCredentials', 'No access token provided')
+
         creds = Credentials(token=accessToken)
 
         # Get the user's email address
-        email_address = auth.get_user_email(creds)
+        email_address = get_user_email(creds)
 
-        email_fetch_json = logic.not_replied_emails(creds)
-
-        openai_json = logic.generate_reply(email_fetch_json)
-
-        email_list = logic.send_email_to_all(creds, openai_json, email_address)
-
-        res_body = {'email_sent': email_list}
-        print(email_list)
+        body = {"user_email": email_address}
         # Return the request body in the response
         response = {
             "statusCode": 200,
             "headers": {
                 "Content-Type": "application/json"
             },
-            "body": json.dumps(res_body),
+            "body": json.dumps(body),
             "isBase64Encoded": False
         }
         print(response)
@@ -53,8 +51,9 @@ def generate_follow_up_handler(event, context):
         print(response)
         return response
 
+
 class CustomError(Exception):
-    def __init__(self, status_code, code, message):
-        self.status_code = status_code
-        self.code = code
-        self.message = message
+  def __init__(self, status_code, code, message):
+      self.status_code = status_code
+      self.code = code
+      self.message = message
