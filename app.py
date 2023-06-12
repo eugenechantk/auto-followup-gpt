@@ -53,44 +53,6 @@ def generate_follow_up_handler(event, context):
         print(response)
         return response
 
-def authentication_handler(event, context):
-    print('authentication lambda function invoked')
-    request_headers = json.loads(event['headers'])
-    try:
-        # Get the access token from the request
-        accessToken = request_headers['Authorization'].split(' ')[1]
-        if accessToken is None:
-            raise CustomError(400, 'NoCredentials', 'No access token provided')
-
-        creds = Credentials(token=accessToken)
-
-        # Get the user's email address
-        email_address = auth.get_user_email(creds)
-
-        body = {"user_email": email_address}
-        # Return the request body in the response
-        response = {
-            "statusCode": 200,
-            "headers": {
-                "Content-Type": "application/json"
-            },
-            "body": json.dumps(body),
-            "isBase64Encoded": False
-        }
-        print(response)
-        return response
-    except Exception as e:
-        response = {
-            "statusCode": e.statusCode,
-            "headers": {
-                "Content-Type": "application/json"
-            },
-            "body": e.code + ": " + e.message,
-            "isBase64Encoded": False
-        }
-        print(response)
-        return response
-
 class CustomError(Exception):
     def __init__(self, status_code, code, message):
         self.status_code = status_code
