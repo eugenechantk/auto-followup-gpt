@@ -207,7 +207,7 @@ def extract_email(string):
         return ""
 
 
-def openai_prompt_response(clean_body):
+def openai_prompt_response(clean_body, receiver, subject):
 
     prompt = "I wrote this email: " + clean_body + "\n" + \
         "Can you write a follow-up email for this email I wrote? I don't need a subject, and the email should be less than 100 words, and every sentence should be complete. The email should include the phrase, follow up, in the email body."
@@ -216,8 +216,10 @@ def openai_prompt_response(clean_body):
         engine=model, prompt=prompt, max_tokens=100)
 
     generated_text = response.choices[0].text
+    
+    generated_formatted = "This is a reminder to send a follow-up email to " + receiver + ".\n" "The email you wrote previously has the subject of: " + subject + "\n\nHere is the drafted follow up for you 😉\n"+ generated_text
 
-    return generated_text
+    return generated_formatted
 
 
 # %%
@@ -247,7 +249,7 @@ def generate_reply(json_str):
 
         clean_body = delete_old_thread(body)
 
-        response = openai_prompt_response(body)
+        response = openai_prompt_response(body, receiver, subject)
 
         df.loc[index, 'reply'] = response
     df['sent_time'] = df['sent_time'].astype(str)
