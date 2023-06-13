@@ -217,7 +217,7 @@ def openai_prompt_response(clean_body, receiver, subject):
 
     generated_text = response.choices[0].text
     
-    generated_formatted = "This is a reminder to send a follow-up email to " + receiver + ".\n" "The email you wrote previously has the subject of: " + subject + "\n\nHere is the drafted follow up for you 😉\n\n"+ generated_text
+    generated_formatted = "This is a reminder to send a follow-up email to " + receiver + ".\n" "The email you wrote previously has the subject of: " + subject + "\n\nHere is the drafted follow up for you 😉\n"+ generated_text
 
     return generated_formatted
 
