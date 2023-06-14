@@ -181,12 +181,6 @@ def data_cleaning(json_str):
     # filter dataframe that has been three days since the email was sent
     df['sent_time'] = pd.to_datetime(df['sent_time'])
 
-    # Calculate threshold date (current date - 3 days)
-    threshold_date = datetime.now().date() - timedelta(days=3)
-
-    # Filter the dataframe based on the condition
-    df = df[df['sent_time'].dt.date <= threshold_date]
-
     # Apply the function on the 'email_string' column
     df['receiver'] = df['receiver'].apply(extract_email)
 
