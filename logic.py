@@ -156,10 +156,8 @@ def data_cleaning(json_str):
         # Convert the "sent_time" column to datetime format
         df['sent_time'] = pd.to_datetime(df['sent_time'])
 
-    # Check if the "receiver" column exists
-    if 'receiver' in df.columns:
-        # Apply the function on the 'receiver' column
-        df['receiver'] = df['receiver'].apply(extract_email)
+    # Apply the function on the 'email_string' column
+    df['receiver'] = df['receiver'].apply(extract_email)
 
     # Add an empty column to the dataframe
     df['reply'] = ''
