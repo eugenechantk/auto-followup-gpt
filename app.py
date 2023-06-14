@@ -6,6 +6,7 @@ from google.oauth2.credentials import Credentials
 import logic
 import auth
 
+sampleEvent = {"body": '{"access_token": "ya29.a0AWY7CkmrRoU3MGKdbaH35elCpuN91iCJqzxkXupRpTw7b1-8F_MyIyL4HhN53Zq7JzcAMiCmsAnXcMZ8ZihEXP2ijMN1yr-Mj0JWyf1wBLlOGNIXo59xhprfUrR_RKISyHvjSMuahrjrjC2vFaqvpgRBB-vIaCgYKAe8SARASFQG1tDrp86C7y8lq2YaGIFd3pBGL2w0163","refresh_token": "1//062i6osRmCOpjCgYIARAAGAYSNwF-L9IrXdtc90NEwjBkNkiCwhc2m-xw_W0J10O0iz_5vwx8G5AbvuxAKq6t2P8PmLbK7Mv-nXY","scope": "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send","token_type": "Bearer","expiry_date": 1686781603038}'}
 
 def generate_follow_up_handler(event, context):
     print('generate follow up lambda function invoked')
@@ -58,3 +59,6 @@ class CustomError(Exception):
         self.status_code = status_code
         self.code = code
         self.message = message
+
+if __name__ == '__main__':
+    generate_follow_up_handler(sampleEvent, None)
