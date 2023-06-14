@@ -106,7 +106,6 @@ def get_body(payload):
 
 
 def not_replied_emails(creds):
-
     # Connect to the Gmail API
     service = build('gmail', 'v1', credentials=creds)
     print('Connection Established')
@@ -119,56 +118,30 @@ def not_replied_emails(creds):
     messages = find_all_messages(service)
 
     # output data storage
-    df = pd.DataFrame(columns=['msgId', 'subject', 'thread_id',
-                      'sender', 'receiver', 'sent_time', 'body'])
+    df = pd.DataFrame(columns=['msgId', 'subject', 'thread_id', 'sender', 'receiver', 'sent_time', 'body'])
     # iterate through all the messages
     thread_ids = set()
 
     for msg in messages:
         # Get the message from its id
-        txt = service.users().messages().get(
-            userId='me', id=msg['id']).execute()
-        # print("txt['labelIds']", txt['labelIds'])
+        txt = service.users().messages().get(userId='me', id=msg['id']).execute()
         if follow_up_label_id in txt['labelIds']:
             target_text = txt
             thread, thread_id = get_thread_and_id(service, target_text)
             last_sender = check_sender_of_last_thread(thread)
 
-            # Use try-except to avoid any Errors
-            try:
-                # Get value of 'payload' from dictionary 'target_text'
-                payload = target_text['payload']
-                headers = payload['headers']
-
-                subject, sender, receiver, sent_time = get_subject_sender_receiver_date(
-                    headers, target_text)
-
-                # check if the email is responded or not by seeing the last sender
-                # and we haven't checked this thread yet
-                if (last_sender == sender) and (thread_id not in thread_ids):
-                    thread_ids.add(thread_id)
-                    body = get_body(payload)
-
-                    # print("Subject: ", subject)
-                    # print("From: ", sender)
-                    # print("Date: ", sent_time)
-                    # print("Body: ", body)
-                    # print('receiver', receiver)
-                    # print('\n')
-
-                    new_row = {'msgId': msg['id'], 'subject': subject, 'thread_id': thread_id, 'sender': sender,
-                               'receiver': receiver, 'sent_time': sent_time, 'body': body}
-                    df.loc[len(df)] = new_row
-
-            except:
-                pass
-
-    # save as a json data
-    df_dict = df.to_dict(orient='records')
-    df['sent_time'] = df['sent_time'].astype(str)
-    json_data = json.dumps(df_dict)
-
-    return json_data
+            # Check if the email hasn't been replied for more than 3 days
+            if last_sender is None:
+                sent_time = datetime.strptime(target_text['sent_time'], '%Y-%m-%d %H:%M:%S')
+                current_time = datetime.now()
+                time_difference = current_time - sent_time
+                if time_difference.days > 3:
+                    # Generate a reply using OpenAI's GPT model
+                    message = generate_reply(target_text['body'])
+                    # Store the relevant information in the data frame
+                    df.loc[len(df)] = {'msgId': msg['id'], 'subject': target_text['subject'], 'thread_id': thread_id, 'sender': target_text['sender'], 'receiver': target_text['receiver'], 'sent_time': target_text['sent_time'], 'body': target_text['body'], 'reply': message}
+    
+    return df.to_json(orient='records')
 
 
 # -- Help Functions for generating open ai reply -- #
