@@ -21,162 +21,6 @@ load_dotenv()
 openai.api_key = os.getenv('OPENAI_KEY')
 
 
-
-
-
-# find the follow up labels
-def find_follow_up_label(service):
-
-    labels_results = service.users().labels().list(userId='me').execute()
-    labels = labels_results.get('labels', [])
-
-    # #store all ids with follow-up label
-    follow_up_label_id = None
-    for label in labels:
-        if label['name'] == 'Follow-up':
-            follow_up_label_id = label['id']
-    return follow_up_label_id
-
-
-def find_all_messages(service):
-    # request a list of all the messages
-    # We can also pass maxResults to get any number of emails. Like this:
-    result = service.users().messages().list(
-        maxResults=50, userId='me', labelIds=['SENT']).execute()
-    messages = result.get('messages')
-    return messages
-
-
-def get_thread_and_id(service, target_text):
-
-    # find the thread for this email
-    thread_id = target_text['threadId']
-    thread = service.users().threads().get(userId='me', id=thread_id).execute()
-    return thread, thread_id
-
-
-def check_sender_of_last_thread(thread):
-    if 'messages' in thread:
-        last_message = thread['messages'][-1]
-    if 'payload' in last_message:
-        payload = last_message['payload']
-        headers = payload['headers']
-        for header in headers:
-            if header['name'] == 'From':
-                sender = header['value']
-                return sender
-    return None
-
-# Look for Subject, Sender, and Receiver Email in the headers
-
-
-def get_subject_sender_receiver_date(headers, target_text):
-
-    for d in headers:
-        if d['name'] == 'Subject':
-            subject = d['value']
-        if d['name'] == 'From':
-            sender = d['value']
-        if d['name'] == 'To' or d['name'] == 'Delivered-To':
-            receiver = d['value']
-
-    internal_date = target_text['internalDate']
-    sent_time = datetime.fromtimestamp(
-        int(internal_date) / 1000).strftime('%Y-%m-%d %H:%M:%S')
-    return subject, sender, receiver, sent_time
-
-
-def get_body(payload):
-    # The Body of the message is in Encrypted format. So, we have to decode it.
-    # Get the data and decode it with base 64 decoder.
-
-    parts = payload.get('parts')[0]
-    # non pure text
-    if 'multipart' in parts['mimeType']:
-        for part in parts['parts']:
-            if part['mimeType'] == 'text/plain':
-                data = part['body']['data']
-    # pure text
-    else:
-        data = parts['body']['data']
-
-    data = data.replace("-", "+").replace("_", "/")
-    body = base64.b64decode(data).decode('utf-8')
-    return body
-
-
-def not_replied_emails(creds):
-    # Connect to the Gmail API
-    service = build('gmail', 'v1', credentials=creds)
-    print('Connection Established')
-
-    follow_up_label_id = find_follow_up_label(service)
-    if follow_up_label_id is None:
-        print("Follow-up label not found")
-        return None
-
-    # Get the list of messages
-    messages = find_all_messages(service)
-
-    # Get the current date and time
-    current_time = datetime.now()
-
-    # Output data storage
-    df = pd.DataFrame(columns=['msgId', 'subject', 'thread_id',
-                               'sender', 'receiver', 'sent_time', 'body'])
-    # Iterate through all the messages
-    thread_ids = set()
-
-    for msg in messages:
-        # Get the message from its id
-        txt = service.users().messages().get(
-            userId='me', id=msg['id']).execute()
-
-        if follow_up_label_id in txt['labelIds']:
-            target_text = txt
-            thread, thread_id = get_thread_and_id(service, target_text)
-            last_sender = check_sender_of_last_thread(thread)
-
-            try:
-                # Get value of 'payload' from dictionary 'target_text'
-                payload = target_text['payload']
-                headers = payload['headers']
-
-                subject, sender, receiver, sent_time = get_subject_sender_receiver_date(
-                    headers, target_text)
-
-                # Check if the email is responded or not by seeing the last sender
-                # and we haven't checked this thread yet
-                if (last_sender == sender) and (thread_id not in thread_ids):
-                    thread_ids.add(thread_id)
-
-                    # Convert the sent_time to datetime object
-                    sent_time = datetime.strptime(sent_time, '%Y-%m-%d %H:%M:%S')
-
-                    # Calculate the time difference between the current time and sent_time
-                    time_diff = current_time - sent_time
-
-                    # Check if the email was sent within the last three days
-                    if time_diff.days <= 3:
-                        body = get_body(payload)
-
-                        new_row = {'msgId': msg['id'], 'subject': subject, 'thread_id': thread_id, 'sender': sender,
-                                   'receiver': receiver, 'sent_time': sent_time, 'body': body}
-                        df.loc[len(df)] = new_row
-
-            except:
-                pass
-
-    # Convert the sent_time column to string
-    df['sent_time'] = df['sent_time'].astype(str)
-
-    # Save as a json data
-    df_dict = df.to_dict(orient='records')
-    json_data = json.dumps(df_dict)
-
-    return json_data
-
-
 # -- Help Functions for generating open ai reply -- #
 
 
@@ -308,3 +152,123 @@ def send_email_to_all(creds, openai_json, email_address):
         email_list.append({'id': df['msgId'][i], 'message': message})
 
     return email_list
+
+def find_follow_up_label(service):
+    labels_results = service.users().labels().list(userId='me').execute()
+    labels = labels_results.get('labels', [])
+
+    # store all ids with follow-up label
+    follow_up_label_id = None
+    for label in labels:
+        if label['name'] == 'Follow-up':
+            follow_up_label_id = label['id']
+    return follow_up_label_id
+
+
+def find_all_messages(service):
+    # request a list of all the messages
+    # We can also pass maxResults to get any number of emails. Like this:
+    result = service.users().messages().list(
+        maxResults=50, userId='me', labelIds=['SENT']).execute()
+    messages = result.get('messages')
+    return messages
+
+
+def get_thread_and_id(service, target_text):
+    # find the thread for this email
+    thread_id = target_text['threadId']
+    thread = service.users().threads().get(userId='me', id=thread_id).execute()
+    return thread, thread_id
+
+
+def check_sender_of_last_thread(thread):
+    if 'messages' in thread:
+        last_message = thread['messages'][-1]
+    if 'payload' in last_message:
+        payload = last_message['payload']
+        headers = payload['headers']
+        for header in headers:
+            if header['name'] == 'From':
+                sender = header['value']
+                return sender
+    return None
+
+
+# Look for Subject, Sender, and Receiver Email in the headers
+def get_subject_sender_receiver_date(headers, target_text):
+    for d in headers:
+        if d['name'] == 'Subject':
+            subject = d['value']
+        if d['name'] == 'From':
+            sender = d['value']
+        if d['name'] == 'To' or d['name'] == 'Delivered-To':
+            receiver = d['value']
+
+    internal_date = target_text['internalDate']
+    sent_time = datetime.fromtimestamp(
+        int(internal_date) / 1000).strftime('%Y-%m-%d %H:%M:%S')
+    return subject, sender, receiver, sent_time
+
+
+def get_body(payload):
+    # The Body of the message is in Encrypted format. So, we have to decode it.
+    # Get the data and decode it with base 64 decoder.
+
+    parts = payload.get('parts')[0]
+    # non pure text
+    if 'multipart' in parts['mimeType']:
+        for part in parts['parts']:
+            if part['mimeType'] == 'text/plain':
+                data = part['body']['data']
+    # pure text
+    else:
+        data = parts['body']['data']
+
+    data = data.replace("-", "+").replace("_", "/")
+    body = base64.b64decode(data).decode('utf-8')
+    return body
+
+
+def not_replied_emails(creds):
+    # Connect to the Gmail API
+    service = build('gmail', 'v1', credentials=creds)
+    print('Connection Established')
+
+    follow_up_label_id = find_follow_up_label(service)
+    if follow_up_label_id is None:
+        print("Follow-up label not found")
+        return None
+
+    messages = find_all_messages(service)
+
+    # output data storage
+    df = pd.DataFrame(columns=['msgId', 'subject', 'thread_id',
+                               'sender', 'receiver', 'sent_time', 'body'])
+    # iterate through all the messages
+    thread_ids = set()
+
+    for msg in messages:
+        # Get the message from its id
+        txt = service.users().messages().get(
+            userId='me', id=msg['id']).execute()
+
+        # Check if the email is older than 3 days
+        today = datetime.now()
+        sent_time = datetime.fromtimestamp(int(txt['internalDate']) / 1000)
+        if (today - sent_time).days > 3:
+            target_text = txt
+            thread, thread_id = get_thread_and_id(service, target_text)
+            last_sender = check_sender_of_last_thread(thread)
+
+            # Get the subject, sender, receiver, and sent time
+            headers = target_text['payload']['headers']
+            subject, sender, receiver, sent_time = get_subject_sender_receiver_date(headers, target_text)
+
+            # Get the email body
+            body = get_body(target_text['payload'])
+
+            # Add the email details to the dataframe
+            df.loc[len(df)] = {'msgId': msg['id'], 'subject': subject, 'thread_id': thread_id,
+                            'sender': sender, 'receiver': receiver, 'sent_time': sent_time, 'body': body}
+
+    return df
