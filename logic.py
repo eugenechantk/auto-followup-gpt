@@ -117,7 +117,6 @@ def not_replied_emails(creds):
 
     # Get the list of messages
     messages = find_all_messages(service)
-    # print(messages)
 
     # Get the current date and time
     current_time = datetime.now()
@@ -132,7 +131,6 @@ def not_replied_emails(creds):
         # Get the message from its id
         txt = service.users().messages().get(
             userId='me', id=msg['id']).execute()
-        # print(txt)
 
         if follow_up_label_id in txt['labelIds']:
             target_text = txt
@@ -164,9 +162,7 @@ def not_replied_emails(creds):
 
                         new_row = {'msgId': msg['id'], 'subject': subject, 'thread_id': thread_id, 'sender': sender,
                                    'receiver': receiver, 'sent_time': sent_time, 'body': body}
-                        print(new_row['subject'], new_row['sent_time'])
-                        df.loc[len(df)] = new_row
-                        # df = df.append(new_row, ignore_index=True)
+                        df = df.append(new_row, ignore_index=True)
 
             except:
                 pass
@@ -175,7 +171,6 @@ def not_replied_emails(creds):
     df_dict = df.to_dict(orient='records')
     df['sent_time'] = df['sent_time'].astype(str)
     json_data = json.dumps(df_dict)
-    print(json_data)
 
     return json_data
 
@@ -199,11 +194,9 @@ def data_cleaning(json_str):
     # Apply the function on the 'email_string' column
     df['receiver'] = df['receiver'].apply(extract_email)
 
-    # Add an empty column to the dataframe
+    # %%
+    # add an empty column to the dataframe
     df['reply'] = ''
-
-    # Convert the 'sent_time' column back to string
-    df['sent_time'] = df['sent_time'].astype(str)
 
     return df
 
