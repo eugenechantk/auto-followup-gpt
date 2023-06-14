@@ -60,3 +60,6 @@ class CustomError(Exception):
         self.status_code = status_code
         self.code = code
         self.message = message
+
+if __name__ == '__main__':
+    generate_follow_up_handler(sampleEvent, None)
