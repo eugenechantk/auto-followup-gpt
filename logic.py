@@ -151,14 +151,15 @@ def data_cleaning(json_str):
     # Convert the string to a DataFrame
     df = pd.read_json(json_str, orient='records')
 
-    # filter dataframe that has been three days since the email was sent
-    df['sent_time'] = pd.to_datetime(df['sent_time'])
+    # Check if the "sent_time" column exists
+    if 'sent_time' in df.columns:
+        # Convert the "sent_time" column to datetime format
+        df['sent_time'] = pd.to_datetime(df['sent_time'])
 
     # Apply the function on the 'email_string' column
     df['receiver'] = df['receiver'].apply(extract_email)
 
-    # %%
-    # add an empty column to the dataframe
+    # Add an empty column to the dataframe
     df['reply'] = ''
 
     return df
