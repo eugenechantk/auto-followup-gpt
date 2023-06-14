@@ -15,10 +15,10 @@ from dotenv import load_dotenv
 
 
 # FOR AWS
-openai.api_key = os.environ['OPENAI_KEY']
+# openai.api_key = os.environ['OPENAI_KEY']
 # FOR LOCAL
-# load_dotenv()
-# openai.api_key = os.getenv('OPENAI_KEY')
+load_dotenv()
+openai.api_key = os.getenv('OPENAI_KEY')
 
 
 
@@ -106,7 +106,6 @@ def get_body(payload):
 
 
 def not_replied_emails(creds):
-
     # Connect to the Gmail API
     service = build('gmail', 'v1', credentials=creds)
     print('Connection Established')
@@ -116,25 +115,28 @@ def not_replied_emails(creds):
         print("Follow-up label not found")
         return None
 
+    # Get the list of messages
     messages = find_all_messages(service)
 
-    # output data storage
+    # Get the current date and time
+    current_time = datetime.now()
+
+    # Output data storage
     df = pd.DataFrame(columns=['msgId', 'subject', 'thread_id',
-                      'sender', 'receiver', 'sent_time', 'body'])
-    # iterate through all the messages
+                               'sender', 'receiver', 'sent_time', 'body'])
+    # Iterate through all the messages
     thread_ids = set()
 
     for msg in messages:
         # Get the message from its id
         txt = service.users().messages().get(
             userId='me', id=msg['id']).execute()
-        # print("txt['labelIds']", txt['labelIds'])
+
         if follow_up_label_id in txt['labelIds']:
             target_text = txt
             thread, thread_id = get_thread_and_id(service, target_text)
             last_sender = check_sender_of_last_thread(thread)
 
-            # Use try-except to avoid any Errors
             try:
                 # Get value of 'payload' from dictionary 'target_text'
                 payload = target_text['payload']
@@ -143,27 +145,29 @@ def not_replied_emails(creds):
                 subject, sender, receiver, sent_time = get_subject_sender_receiver_date(
                     headers, target_text)
 
-                # check if the email is responded or not by seeing the last sender
+                # Check if the email is responded or not by seeing the last sender
                 # and we haven't checked this thread yet
                 if (last_sender == sender) and (thread_id not in thread_ids):
                     thread_ids.add(thread_id)
-                    body = get_body(payload)
 
-                    # print("Subject: ", subject)
-                    # print("From: ", sender)
-                    # print("Date: ", sent_time)
-                    # print("Body: ", body)
-                    # print('receiver', receiver)
-                    # print('\n')
+                    # Convert the sent_time to datetime object
+                    sent_time = datetime.strptime(sent_time, '%Y-%m-%d %H:%M:%S')
 
-                    new_row = {'msgId': msg['id'], 'subject': subject, 'thread_id': thread_id, 'sender': sender,
-                               'receiver': receiver, 'sent_time': sent_time, 'body': body}
-                    df.loc[len(df)] = new_row
+                    # Calculate the time difference between the current time and sent_time
+                    time_diff = current_time - sent_time
+
+                    # Check if the email was sent within the last three days
+                    if time_diff.days <= 3:
+                        body = get_body(payload)
+
+                        new_row = {'msgId': msg['id'], 'subject': subject, 'thread_id': thread_id, 'sender': sender,
+                                   'receiver': receiver, 'sent_time': sent_time, 'body': body}
+                        df = df.append(new_row, ignore_index=True)
 
             except:
                 pass
 
-    # save as a json data
+    # Save as a json data
     df_dict = df.to_dict(orient='records')
     df['sent_time'] = df['sent_time'].astype(str)
     json_data = json.dumps(df_dict)
