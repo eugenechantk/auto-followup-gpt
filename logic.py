@@ -163,14 +163,15 @@ def not_replied_emails(creds):
                         new_row = {'msgId': msg['id'], 'subject': subject, 'thread_id': thread_id, 'sender': sender,
                                    'receiver': receiver, 'sent_time': sent_time, 'body': body}
                         df.loc[len(df)] = new_row
-                        # df = df.append(new_row, ignore_index=True)
 
             except:
                 pass
 
+    # Convert the sent_time column to string
+    df['sent_time'] = df['sent_time'].astype(str)
+
     # Save as a json data
     df_dict = df.to_dict(orient='records')
-    df['sent_time'] = df['sent_time'].astype(str)
     json_data = json.dumps(df_dict)
 
     return json_data
@@ -190,7 +191,7 @@ def data_cleaning(json_str):
     threshold_date = datetime.now().date() - timedelta(days=3)
 
     # Filter the dataframe based on the condition
-    df = df[df['sent_time'].dt.date <= threshold_date]
+    # df = df[df['sent_time'].dt.date <= threshold_date]
 
     # Apply the function on the 'email_string' column
     df['receiver'] = df['receiver'].apply(extract_email)
