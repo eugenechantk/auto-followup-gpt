@@ -40,6 +40,7 @@ def authentication_handler(event, context):
         print(response)
         return response
     except Exception as e:
+        print(e)
         response = {
             "statusCode": e.statusCode,
             "headers": {
