@@ -15,11 +15,11 @@ def generate_follow_up_handler(event, context):
     try:
         # Get the access token from the request
         accessToken = request_body['access_token']
-        refreshToken = request_body['refresh_token']
-        print(accessToken, refreshToken)
+        # refreshToken = request_body['refresh_token']
+        print(accessToken)
         if accessToken is None:
             raise CustomError(400, 'NoCredentials', 'No access token provided')
-        creds = Credentials(token=accessToken, refresh_token=refreshToken)
+        creds = Credentials(token=accessToken)
 
         # Get the user's email address
         email_address = auth.get_user_email(creds)
