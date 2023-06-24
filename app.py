@@ -1,10 +1,12 @@
 # from lxml import etree
 import json
 from google.oauth2.credentials import Credentials
+import requests
 
 # Import all the logic functions from logic.py
 import logic
 import auth
+
 
 
 def generate_follow_up_handler(event, context):
@@ -15,8 +17,9 @@ def generate_follow_up_handler(event, context):
     try:
         # Get the access token from the request
         accessToken = request_body['access_token']
+        callbackUrl = request_body['callback_url'];
         # refreshToken = request_body['refresh_token']
-        print(accessToken)
+        print(accessToken, callbackUrl)
         if accessToken is None:
             raise CustomError(400, 'NoCredentials', 'No access token provided')
         creds = Credentials(token=accessToken)
@@ -42,6 +45,9 @@ def generate_follow_up_handler(event, context):
             "isBase64Encoded": False
         }
         print(response)
+
+        # Callback to Zapier to complete the async request
+        callbackRes = requests.post(callbackUrl, params={"Content-Type": "application/json"}, data=json.dumps(res_body))
         return response
     except Exception as e:
         print(e)
