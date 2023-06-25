@@ -32,7 +32,8 @@ def generate_follow_up_handler(event, context):
         print(request_body)
         if accessToken is None:
             raise CustomError(400, 'NoCredentials', 'No access token provided')
-        creds = Credentials(token=accessToken, refresh_token=refreshToken, client_id=oauth_client_id, client_secret=oauth_client_secret, token_uri='https://oauth2.googleapis.com/token')
+        creds = Credentials(token=accessToken, refresh_token=refreshToken, client_id=oauth_client_id,
+                            client_secret=oauth_client_secret, token_uri='https://oauth2.googleapis.com/token')
 
         # creds = Credentials(token=sampleToken["access_token"], refresh_token=sampleToken["refresh_token"],
         #                     client_id=oauth_client_id, client_secret=oauth_client_secret, token_uri='https://oauth2.googleapis.com/token')
@@ -46,24 +47,34 @@ def generate_follow_up_handler(event, context):
 
         print('not_replied_emails', email_fetch_json)
         if email_fetch_json == None:
+            no_follow_up_email = {"email_sent": [{"id": "NaN", "message": {
+                    "id": "NaN",
+                    "threadId": "NaN",
+                    "labelIds": [
+                        "UNREAD",
+                        "SENT",
+                        "INBOX"
+                    ]
+                }}]}
             response = {
                 "statusCode": 200,
                 "headers": {
                     "Content-Type": "application/json"
                 },
-                "body": 'No follow up emails',
+                "body": json.dumps(no_follow_up_email),
                 "isBase64Encoded": False
             }
             # Callback to Zapier to complete the async request
+            print(json.dumps(no_follow_up_email))
             try:
                 callbackRes = requests.post(callbackUrl, params={
-                                            "Content-Type": "application/json"}, data="No follow up emails")
+                                            "Content-Type": "application/json"}, data=json.dumps(no_follow_up_email))
                 print('zapier callback', callbackRes)
                 return response
             except Exception as e:
                 print('zapier callback failed', e)
                 raise CustomError(400, 'ZapierCallBackFail',
-                                'Zapier Callback Failed')
+                                  'Zapier Callback Failed')
 
         openai_json = logic.generate_reply(email_fetch_json)
 
@@ -83,15 +94,17 @@ def generate_follow_up_handler(event, context):
             "isBase64Encoded": False
         }
         print(response)
-
+        print(json.dumps(res_body))
         # Callback to Zapier to complete the async request
         try:
-            callbackRes = requests.post(callbackUrl, params={"Content-Type": "application/json"}, data=json.dumps(res_body))
+            callbackRes = requests.post(callbackUrl, params={
+                                        "Content-Type": "application/json"}, data=json.dumps(res_body))
             print('zapier callback', callbackRes)
             return response
         except Exception as e:
-            print( 'zapier callback failed', e)
-            raise CustomError(400, 'ZapierCallBackFail', 'Zapier Callback Failed')
+            print('zapier callback failed', e)
+            raise CustomError(400, 'ZapierCallBackFail',
+                              'Zapier Callback Failed')
 
     except Exception as e:
         print(e)
