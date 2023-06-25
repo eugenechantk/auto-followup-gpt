@@ -62,7 +62,8 @@ def generate_follow_up_handler(event, context):
             return response
         except Exception as e:
             print( 'zapier callback failed', e)
-            raise 
+            raise CustomError(400, 'ZapierCallBackFail', 'Zapier Callback Failed')
+        
     except Exception as e:
         print(e)
         response = {
