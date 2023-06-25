@@ -20,10 +20,6 @@ openai.api_key = os.environ['OPENAI_KEY']
 # load_dotenv()
 # openai.api_key = os.getenv('OPENAI_KEY')
 
-
-
-
-
 # find the follow up labels
 def find_follow_up_label(service):
 
@@ -41,8 +37,9 @@ def find_follow_up_label(service):
 def find_all_messages(service):
     # request a list of all the messages
     # We can also pass maxResults to get any number of emails. Like this:
+    follow_up_label_id = find_follow_up_label(service)
     result = service.users().messages().list(
-        maxResults=50, userId='me', labelIds=['SENT']).execute()
+        userId='me', labelIds=['SENT', follow_up_label_id]).execute()
     messages = result.get('messages')
     return messages
 
@@ -115,10 +112,10 @@ def not_replied_emails(creds):
         print('Connection Failed', e)
         return None
 
-    follow_up_label_id = find_follow_up_label(service)
-    if follow_up_label_id is None:
-        print("Follow-up label not found")
-        return None
+    # follow_up_label_id = find_follow_up_label(service)
+    # if follow_up_label_id is None:
+    #     print("Follow-up label not found")
+    #     return None
 
     messages = find_all_messages(service)
 
@@ -133,40 +130,39 @@ def not_replied_emails(creds):
         txt = service.users().messages().get(
             userId='me', id=msg['id']).execute()
         # print("txt['labelIds']", txt['labelIds'])
-        if follow_up_label_id in txt['labelIds']:
-            target_text = txt
-            thread, thread_id = get_thread_and_id(service, target_text)
-            last_sender = check_sender_of_last_thread(thread)
+        target_text = txt
+        thread, thread_id = get_thread_and_id(service, target_text)
+        last_sender = check_sender_of_last_thread(thread)
 
-            # Use try-except to avoid any Errors
-            try:
-                # Get value of 'payload' from dictionary 'target_text'
-                payload = target_text['payload']
-                headers = payload['headers']
+        # Use try-except to avoid any Errors
+        try:
+            # Get value of 'payload' from dictionary 'target_text'
+            payload = target_text['payload']
+            headers = payload['headers']
 
-                subject, sender, receiver, sent_time = get_subject_sender_receiver_date(
-                    headers, target_text)
+            subject, sender, receiver, sent_time = get_subject_sender_receiver_date(
+                headers, target_text)
 
-                # check if the email is responded or not by seeing the last sender
-                # and we haven't checked this thread yet
-                if (last_sender == sender) and (thread_id not in thread_ids):
-                    thread_ids.add(thread_id)
-                    body = get_body(payload)
+            # check if the email is responded or not by seeing the last sender
+            # and we haven't checked this thread yet
+            if (last_sender == sender) and (thread_id not in thread_ids):
+                thread_ids.add(thread_id)
+                body = get_body(payload)
 
-                    # print("Subject: ", subject)
-                    # print("From: ", sender)
-                    # print("Date: ", sent_time)
-                    # print("Body: ", body)
-                    # print('receiver', receiver)
-                    # print('\n')
+                # print("Subject: ", subject)
+                # print("From: ", sender)
+                # print("Date: ", sent_time)
+                # print("Body: ", body)
+                # print('receiver', receiver)
+                # print('\n')
 
-                    new_row = {'msgId': msg['id'], 'subject': subject, 'thread_id': thread_id, 'sender': sender,
-                               'receiver': receiver, 'sent_time': sent_time, 'body': body}
-                    df.loc[len(df)] = new_row
+                new_row = {'msgId': msg['id'], 'subject': subject, 'thread_id': thread_id, 'sender': sender,
+                            'receiver': receiver, 'sent_time': sent_time, 'body': body}
+                df.loc[len(df)] = new_row
 
-            except Exception as e:
-                print('Error Occured: ', e)
-                pass
+        except Exception as e:
+            print('Error Occured: ', e)
+            pass
 
     # save as a json data
     df_dict = df.to_dict(orient='records')
