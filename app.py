@@ -30,14 +30,20 @@ def generate_follow_up_handler(event, context):
         # Get the user's email address
         email_address = auth.get_user_email(creds)
 
+        print('get_user_email', email_address)
+
         email_fetch_json = logic.not_replied_emails(creds)
 
+        print('not_replied_emails', email_fetch_json)
+
         openai_json = logic.generate_reply(email_fetch_json)
+
+        print('generate_reply', openai_json)
 
         email_list = logic.send_email_to_all(creds, openai_json, email_address)
 
         res_body = {'email_sent': email_list}
-        print(email_list)
+        print('send_email_to_all', email_list)
         # Return the request body in the response
         response = {
             "statusCode": 200,
@@ -51,6 +57,7 @@ def generate_follow_up_handler(event, context):
 
         # Callback to Zapier to complete the async request
         callbackRes = requests.post(callbackUrl, params={"Content-Type": "application/json"}, data=json.dumps(res_body))
+        print('zapier callback', callbackRes)
         return response
     except Exception as e:
         print(e)
