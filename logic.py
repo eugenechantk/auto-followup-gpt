@@ -15,10 +15,10 @@ from dotenv import load_dotenv
 
 
 # FOR AWS
-openai.api_key = os.environ['OPENAI_KEY']
+# openai.api_key = os.environ['OPENAI_KEY']
 # FOR LOCAL
-# load_dotenv()
-# openai.api_key = os.getenv('OPENAI_KEY')
+load_dotenv()
+openai.api_key = os.getenv('OPENAI_KEY')
 
 # find the follow up labels
 def find_follow_up_label(service):
@@ -118,7 +118,8 @@ def not_replied_emails(creds):
     #     return None
 
     messages = find_all_messages(service)
-
+    if (messages is None):
+        return None
     # output data storage
     df = pd.DataFrame(columns=['msgId', 'subject', 'thread_id',
                       'sender', 'receiver', 'sent_time', 'body'])
