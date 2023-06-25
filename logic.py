@@ -108,8 +108,12 @@ def get_body(payload):
 def not_replied_emails(creds):
 
     # Connect to the Gmail API
-    service = build('gmail', 'v1', credentials=creds)
-    print('Connection Established')
+    try:
+        service = build('gmail', 'v1', credentials=creds)
+        print('Connection Established')
+    except Exception as e:
+        print('Connection Failed', e)
+        return None
 
     follow_up_label_id = find_follow_up_label(service)
     if follow_up_label_id is None:
