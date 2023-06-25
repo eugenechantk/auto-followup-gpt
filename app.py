@@ -56,9 +56,13 @@ def generate_follow_up_handler(event, context):
         print(response)
 
         # Callback to Zapier to complete the async request
-        callbackRes = requests.post(callbackUrl, params={"Content-Type": "application/json"}, data=json.dumps(res_body))
-        print('zapier callback', callbackRes)
-        return response
+        try: 
+            callbackRes = requests.post(callbackUrl, params={"Content-Type": "application/json"}, data=json.dumps(res_body))
+            print('zapier callback', callbackRes)
+            return response
+        except Exception as e:
+            print( 'zapier callback failed', e)
+            raise 
     except Exception as e:
         print(e)
         response = {
