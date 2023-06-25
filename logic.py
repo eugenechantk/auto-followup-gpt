@@ -164,7 +164,8 @@ def not_replied_emails(creds):
                                'receiver': receiver, 'sent_time': sent_time, 'body': body}
                     df.loc[len(df)] = new_row
 
-            except:
+            except Exception as e:
+                print('Error Occured: ', e)
                 pass
 
     # save as a json data
@@ -213,20 +214,21 @@ def extract_email(string):
 
 def openai_prompt_response(clean_body, receiver, subject):
 
-    prompt = "I wrote this email: " + clean_body + "\n" + \
-        "Can you write a follow-up email for this email I wrote? I don't need a subject, and the email should be less than 100 words, and every sentence should be complete. The email should include the phrase, follow up, in the email body."
-    model = "text-davinci-003"
-    response = openai.Completion.create(
-        engine=model, prompt=prompt, max_tokens=100)
+    try: 
+        prompt = "I wrote this email: " + clean_body + "\n" + \
+            "Can you write a follow-up email for this email I wrote? I don't need a subject, and the email should be less than 100 words, and every sentence should be complete. The email should include the phrase, follow up, in the email body."
+        model = "text-davinci-003"
+        response = openai.Completion.create(
+            engine=model, prompt=prompt, max_tokens=100)
 
-    generated_text = response.choices[0].text
-    
-    generated_formatted = "This is a reminder to send a follow-up email to " + receiver + ".\n" "The email you wrote previously has the subject of: " + subject + "\n\nHere is the drafted follow up for you 😉\n"+ generated_text
+        generated_text = response.choices[0].text
+        
+        generated_formatted = "This is a reminder to send a follow-up email to " + receiver + ".\n" "The email you wrote previously has the subject of: " + subject + "\n\nHere is the drafted follow up for you 😉\n"+ generated_text
 
-    return generated_formatted
-
-
-# %%
+        return generated_formatted
+    except Exception as e:
+        print('Error Occured: ', e)
+        return None
 
 
 def delete_old_thread(input_text):
@@ -236,10 +238,6 @@ def delete_old_thread(input_text):
         return input_text[:match.start()]
     else:
         return input_text
-
-# -- Main Functions for generating open ai reply -- #
-# %%
-
 
 def generate_reply(json_str):
     df = data_cleaning(json_str)
