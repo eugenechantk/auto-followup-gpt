@@ -15,29 +15,32 @@ from dotenv import load_dotenv
 
 
 # FOR AWS
-# openai.api_key = os.environ['OPENAI_KEY']
+openai.api_key = os.environ['OPENAI_KEY']
 # FOR LOCAL
-load_dotenv()
-openai.api_key = os.getenv('OPENAI_KEY')
+# load_dotenv()
+# openai.api_key = os.getenv('OPENAI_KEY')
 
 # find the follow up labels
 def find_follow_up_label(service):
+    try:
+        labels_results = service.users().labels().list(userId='me').execute()
+        labels = labels_results.get('labels', [])
+        print('labels', labels)
 
-    labels_results = service.users().labels().list(userId='me').execute()
-    labels = labels_results.get('labels', [])
+        # #store all ids with follow-up label
+        follow_up_label_id = None
+        for label in labels:
+            if label['name'] == 'Follow-up':
+                follow_up_label_id = label['id']
+        return follow_up_label_id
+    except Exception as e:
+        print(e)
+        return None
 
-    # #store all ids with follow-up label
-    follow_up_label_id = None
-    for label in labels:
-        if label['name'] == 'Follow-up':
-            follow_up_label_id = label['id']
-    return follow_up_label_id
 
-
-def find_all_messages(service):
+def find_all_messages(service, follow_up_label_id):
     # request a list of all the messages
     # We can also pass maxResults to get any number of emails. Like this:
-    follow_up_label_id = find_follow_up_label(service)
     result = service.users().messages().list(
         userId='me', labelIds=['SENT', follow_up_label_id]).execute()
     messages = result.get('messages')
@@ -102,22 +105,22 @@ def get_body(payload):
     return body
 
 
-def not_replied_emails(creds):
+def not_replied_emails(service, follow_up_label_id):
 
     # Connect to the Gmail API
-    try:
-        service = build('gmail', 'v1', credentials=creds)
-        print('Connection Established')
-    except Exception as e:
-        print('Connection Failed', e)
-        return None
+    # try:
+    #     service = build('gmail', 'v1', credentials=creds)
+    #     print('Connection Established')
+    # except Exception as e:
+    #     print('Connection Failed', e)
+    #     return None
 
     # follow_up_label_id = find_follow_up_label(service)
     # if follow_up_label_id is None:
     #     print("Follow-up label not found")
     #     return None
 
-    messages = find_all_messages(service)
+    messages = find_all_messages(service, follow_up_label_id)
     if (messages is None):
         return None
     # output data storage
@@ -260,8 +263,7 @@ def generate_reply(json_str):
 # -- Helper Function for Sending Email -- #
 
 
-def send_one_email(creds, sender, receiver, subject, message):
-    service = build('gmail', 'v1', credentials=creds)
+def send_one_email(service, sender, receiver, subject, message):
     # Create an email message
     email = MIMEText(message)
     email['to'] = receiver
@@ -284,7 +286,7 @@ def send_one_email(creds, sender, receiver, subject, message):
 # -- Main Function for Sending Email -- #
 
 
-def send_email_to_all(creds, openai_json, email_address):
+def send_email_to_all(service, openai_json, email_address):
     df = pd.read_json(openai_json, orient='records')
     email_list = []
 
@@ -297,7 +299,7 @@ def send_email_to_all(creds, openai_json, email_address):
             df['subject'][i] + ' -- For ' + real_receiver + ' ---'
         print(subject)
         message = df['reply'][i]
-        message = send_one_email(creds, sender, receiver, subject, message)
+        message = send_one_email(service, sender, receiver, subject, message)
         email_list.append({'id': df['msgId'][i], 'message': message})
 
     return email_list

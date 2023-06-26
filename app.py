@@ -3,6 +3,7 @@ import json
 from google.oauth2.credentials import Credentials
 import requests
 import os
+from googleapiclient.discovery import build
 
 # Import all the logic functions from logic.py
 import logic
@@ -15,6 +16,16 @@ import auth
 #     "token_type": "Bearer",
 #     "expiry_date": 1687714450951
 # }
+
+no_follow_up_email = {"email_sent": [{"id": "NaN", "message": {
+    "id": "NaN",
+    "threadId": "NaN",
+                "labelIds": [
+                    "UNREAD",
+                    "SENT",
+                    "INBOX"
+                ]
+}}]}
 
 
 def generate_follow_up_handler(event, context):
@@ -34,6 +45,13 @@ def generate_follow_up_handler(event, context):
             raise CustomError(400, 'NoCredentials', 'No access token provided')
         creds = Credentials(token=accessToken, refresh_token=refreshToken, client_id=oauth_client_id,
                             client_secret=oauth_client_secret, token_uri='https://oauth2.googleapis.com/token')
+        
+        try:
+            service = build('gmail', 'v1', credentials=creds)
+        except Exception as e:
+            print(e)
+            raise CustomError(400, 'ServiceError',
+                                  'Cannot create service')
 
         # creds = Credentials(token=sampleToken["access_token"], refresh_token=sampleToken["refresh_token"],
         #                     client_id=oauth_client_id, client_secret=oauth_client_secret, token_uri='https://oauth2.googleapis.com/token')
@@ -42,20 +60,34 @@ def generate_follow_up_handler(event, context):
         email_address = auth.get_user_email(creds)
 
         print('get_user_email', email_address)
+        
+        follow_up_label_id = logic.find_follow_up_label(service)
+        # If there is no follow up label
+        if follow_up_label_id == None:
+            response = {
+                "statusCode": 400,
+                "headers": {
+                    "Content-Type": "application/json"
+                },
+                "body": json.dumps({"message": "No 'Follow-up' label found"}),
+                "isBase64Encoded": False
+            }
+            try:
+                callbackRes = requests.post(callbackUrl, params={
+                                            "Content-Type": "application/json"}, data=json.dumps({"message": "No 'Follow-up' label found"}))
+                print('zapier callback', callbackRes.json())
+                return response
+            except Exception as e:
+                print('zapier callback failed', e)
+                raise CustomError(400, 'ZapierCallBackFail',
+                                  'Zapier Callback Failed')
 
-        email_fetch_json = logic.not_replied_emails(creds)
 
+        email_fetch_json = logic.not_replied_emails(service, follow_up_label_id)
+        # IF there is no follow up emails
         print('not_replied_emails', email_fetch_json)
         if email_fetch_json == None:
-            no_follow_up_email = {"email_sent": [{"id": "NaN", "message": {
-                    "id": "NaN",
-                    "threadId": "NaN",
-                    "labelIds": [
-                        "UNREAD",
-                        "SENT",
-                        "INBOX"
-                    ]
-                }}]}
+
             response = {
                 "statusCode": 200,
                 "headers": {
@@ -69,7 +101,7 @@ def generate_follow_up_handler(event, context):
             try:
                 callbackRes = requests.post(callbackUrl, params={
                                             "Content-Type": "application/json"}, data=json.dumps(no_follow_up_email))
-                print('zapier callback', callbackRes)
+                print('zapier callback', callbackRes.json())
                 return response
             except Exception as e:
                 print('zapier callback failed', e)
@@ -80,7 +112,7 @@ def generate_follow_up_handler(event, context):
 
         print('generate_reply', openai_json)
 
-        email_list = logic.send_email_to_all(creds, openai_json, email_address)
+        email_list = logic.send_email_to_all(service, openai_json, email_address)
 
         res_body = {'email_sent': email_list}
         print('send_email_to_all', email_list)
@@ -99,7 +131,7 @@ def generate_follow_up_handler(event, context):
         try:
             callbackRes = requests.post(callbackUrl, params={
                                         "Content-Type": "application/json"}, data=json.dumps(res_body))
-            print('zapier callback', callbackRes)
+            print('zapier callback', callbackRes.json())
             return response
         except Exception as e:
             print('zapier callback failed', e)
@@ -109,16 +141,15 @@ def generate_follow_up_handler(event, context):
     except Exception as e:
         print(e)
         response = {
-            "statusCode": e.statusCode,
+            "statusCode": 400,
             "headers": {
                 "Content-Type": "application/json"
             },
-            "body": e.code + ": " + e.message,
+            "body": json.dumps({"message": 'Something went wrong'}),
             "isBase64Encoded": False
         }
         print(response)
         return response
-
 
 class CustomError(Exception):
     def __init__(self, status_code, code, message):
